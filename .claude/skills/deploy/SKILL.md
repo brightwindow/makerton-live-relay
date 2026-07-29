@@ -1,6 +1,12 @@
 ---
 name: deploy
 description: Publish MAKERTON LIVE RELAY to its live GitHub Pages URL. Use when asked to deploy, publish, ship, push live, or update the hosted page — "배포", "올려", "반영", "라이브 반영". Commits the working tree, pushes to brightwindow/makerton-live-relay, waits for the Pages build, and verifies the change is actually live.
+user-invocable: true
+allowed-tools:
+  - Bash
+  - Read
+  - Edit
+  - Grep
 ---
 
 # Deploy MAKERTON LIVE RELAY
