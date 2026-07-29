@@ -11,18 +11,6 @@ serve.py     로컬 HTTPS 서버 (인터넷 없이 돌릴 때만 필요)
 start.bat    serve.py 를 더블클릭으로 띄우는 런처
 cert.pem     자체 서명 인증서 (자동 생성 — 지우면 다시 만들어짐)
 key.pem
-
-MAKERTON_원리설명서.pdf   심사위원·팀원용 원리 설명서 (A4 8쪽)
-how-it-works.html        위 PDF 의 원본. 고쳐서 다시 뽑을 수 있다
-```
-
-PDF 를 다시 뽑으려면 `how-it-works.html` 을 고친 뒤:
-
-```powershell
-& "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --headless=new `
-  --no-pdf-header-footer --virtual-time-budget=9000 `
-  --user-data-dir="$env:TEMP\edgepdf" `
-  --print-to-pdf="$PWD\MAKERTON_원리설명서.pdf" "$PWD\how-it-works.html"
 ```
 
 ---
@@ -76,6 +64,35 @@ QR을 폰 카메라로 찍거나, `Copy` 를 눌러 나온 주소를 카톡·메
 | `S` | 현재 화면 PNG 저장 |
 
 `New Session` 을 누르면 새 ROOM 코드가 발급된다.
+
+---
+
+## 팀원 각자 발표 준비하기
+
+**설치할 것 없다. 계정도 필요 없다. 링크만 있으면 된다.**
+
+각자 링크를 열면 **자기만의 ROOM 코드**가 발급된다. 6자리 랜덤이라 겹치지 않으니,
+팀원 다섯이 동시에 각자 리허설해도 서로 화면이 섞이지 않는다.
+
+**혼자 30초 리허설**
+
+1. 노트북에서 링크 열기 → 오른쪽에 ROOM 코드와 QR
+2. 내 폰으로 QR 찍기 → 카메라 허용 → `방송 시작`
+3. 노트북 화면에 내 폰 카메라가 뜨면 끝. `F` 눌러 전체화면으로 확인
+
+**발표 직전 2분 세팅**
+
+1. 빔프로젝터에 연결된 PC에서 링크 열기 → `F` 로 전체화면
+2. QR 찍어서 내 폰을 송출기로 연결
+3. 폰 자동잠금 끄기, 뷰어 `Audio` 끄기(하울링 방지)
+
+**남한테 찍게 하려면** — `Copy` 를 눌러 나온 주소를 카톡으로 보낸다.
+받은 사람은 링크만 누르면 송출기가 된다. 앱 설치 없다.
+
+**화면이 꼬였으면** — 뷰어에서 `New Session`. 새 ROOM 코드가 나오고 처음부터 다시.
+
+> 코드를 **고치는** 사람만 저장소가 필요하다. 고친 뒤 Claude Code 에서 `/deploy`
+> 한 줄이면 라이브 주소까지 반영된다. 발표만 하는 사람은 볼 일 없다.
 
 ---
 
