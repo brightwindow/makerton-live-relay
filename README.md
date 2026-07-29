@@ -2,138 +2,160 @@
 
 ### https://brightwindow.github.io/makerton-live-relay/
 
-스마트폰 카메라 영상을 PC 웹 브라우저에서 실시간으로 보는 데모.
-서버에 영상이 저장되지 않는 **WebRTC P2P** 방식이고, 백엔드 코드는 없다.
+A phone camera on a laptop screen, live. **WebRTC peer-to-peer** — the video is
+never stored on a server, and there is no backend to run.
 
 ```
-index.html   뷰어(PC) + 송출기(폰) 겸용 단일 페이지 — 위 주소로 배포돼 있다
-serve.py     로컬 HTTPS 서버 (인터넷 없이 돌릴 때만 필요)
-start.bat    serve.py 를 더블클릭으로 띄우는 런처
-cert.pem     자체 서명 인증서 (자동 생성 — 지우면 다시 만들어짐)
+index.html   the whole thing: viewer (big screen) and caster (phone) in one page
+serve.py     local HTTPS server, only needed for the no-internet fallback
+start.bat    double-click launcher for serve.py
+cert.pem     self-signed certificate (generated on demand — delete to regenerate)
 key.pem
 ```
 
 ---
 
-## 실행
+## Use it
 
-설치도, 핫스팟도, 인증서 경고도 없다. **링크만 열면 된다.**
+Nothing to install, no hotspot, no certificate warning. **Open the link.**
 
-**1 · 큰 화면이 될 기기에서 링크 열기**
+**1 · Open the link on whatever drives the big screen**
 https://brightwindow.github.io/makerton-live-relay/
-→ 부조 화면이 뜨고 오른쪽에 ROOM 코드와 QR이 나온다.
+A ROOM code and a QR appear on the right. Press `F` for fullscreen.
 
-**2 · 찍을 기기에 링크 넘기기**
-QR을 폰 카메라로 찍거나, `Copy` 를 눌러 나온 주소를 카톡·메시지로 보낸다.
-받은 사람이 링크만 누르면 송출기 화면이 뜬다.
+**2 · Get the link onto the device that will film**
+Scan the QR with the phone's camera, or press `Copy` and send the address by
+message. Whoever opens that link becomes the caster.
 
-**3 · 카메라 허용 → `방송 시작`**
-큰 화면에 영상이 뜨고 탈리 램프가 빨갛게 켜지면 성공.
+**3 · Allow the camera → press `방송 시작` (Start)**
+Video appears on the big screen and the tally lamp turns red.
 
-두 기기가 **같은 와이파이일 필요가 없다.** 폰은 LTE, PC는 사무실 와이파이여도
-붙는다. 필요한 건 양쪽 다 인터넷이 되는 것뿐이다.
+The two devices **do not need to be on the same network.** Phone on cellular and
+laptop on venue Wi-Fi is fine. Both just need internet.
 
-> 아무 기기나 뷰어가 될 수 있다. 태블릿을 부조로 쓰고 노트북 웹캠을 송출기로
-> 써도 똑같이 동작한다.
+> Any device can be the viewer. A tablet as the big screen with a laptop webcam
+> as the caster works identically.
 
-### 인터넷이 아예 없는 곳이라면
+### Fresh room every time
 
-발표장 네트워크를 못 믿겠으면 예전 방식(폰 핫스팟 + 로컬 서버)이 그대로 남아
-있다. 폰 핫스팟을 켜고 → PC를 거기 연결하고 → `start.bat` 더블클릭 →
-`연결이 비공개가 아닙니다` 경고에서 **고급 → 계속 이동** → QR 찍기.
-포트를 바꾸려면 `start.bat 9000`.
+Opening the page issues a new 6-character ROOM code, drawn with
+`crypto.getRandomValues` from a 32-letter alphabet with the confusable
+characters (`0/O`, `1/I`) removed. Several teams can rehearse simultaneously
+without coordinating anything. If a code is already taken, the page reissues.
 
-단, 이 경우 시그널링과 STUN 이 외부 서버를 쓰므로 폰 데이터는 켜져 있어야 한다.
+`New Session` gives you a new one on demand.
 
-### 안 될 때
+### Viewer keys
 
-| 증상 | 조치 |
+| Key | Action |
 |---|---|
-| 폰에서 카메라가 안 켜짐 | 주소가 `https://` 인지 확인. `http://` 면 절대 안 열린다 |
-| `PC 화면을 찾을 수 없습니다` | 뷰어 탭이 켜져 있는지 확인 후 송출기에서 다시 `방송 시작` |
-| 화면이 멈춤 | 뷰어에서 `New Session` → 링크 다시 열기 |
-| 회사·학교 와이파이에서 안 붙음 | 방화벽이 UDP 를 막는 경우다. 폰을 LTE 로 바꾸면 대개 붙는다 |
-| (로컬 서버) QR 링크가 안 열림 | 검은 창에 뜬 `python serve.py 8443 <다른IP>` 를 그대로 실행 |
+| `F` | Fullscreen the monitor |
+| `M` | Mute / unmute |
+| `S` | Save the current frame as PNG |
 
-### 뷰어 단축키
+### If the venue has no internet at all
 
-| 키 | 동작 |
+The original setup still works: turn on the phone's hotspot, join the laptop to
+it, double-click `start.bat`, click through the `Your connection is not private`
+warning (Advanced → Continue), then scan the QR. Use `start.bat 9000` to change
+the port.
+
+Note that this is **not** a fully offline mode — signalling and STUN still reach
+external servers, so the phone needs data even in this configuration.
+
+### When it does not work
+
+| Symptom | Fix |
 |---|---|
-| `F` | 모니터 전체화면 |
-| `M` | 소리 켜기 / 끄기 |
-| `S` | 현재 화면 PNG 저장 |
-
-`New Session` 을 누르면 새 ROOM 코드가 발급된다.
-
----
-
-## 팀원 각자 발표 준비하기
-
-**설치할 것 없다. 계정도 필요 없다. 링크만 있으면 된다.**
-
-각자 링크를 열면 **자기만의 ROOM 코드**가 발급된다. 6자리 랜덤이라 겹치지 않으니,
-팀원 다섯이 동시에 각자 리허설해도 서로 화면이 섞이지 않는다.
-
-**혼자 30초 리허설**
-
-1. 노트북에서 링크 열기 → 오른쪽에 ROOM 코드와 QR
-2. 내 폰으로 QR 찍기 → 카메라 허용 → `방송 시작`
-3. 노트북 화면에 내 폰 카메라가 뜨면 끝. `F` 눌러 전체화면으로 확인
-
-**발표 직전 2분 세팅**
-
-1. 빔프로젝터에 연결된 PC에서 링크 열기 → `F` 로 전체화면
-2. QR 찍어서 내 폰을 송출기로 연결
-3. 폰 자동잠금 끄기, 뷰어 `Audio` 끄기(하울링 방지)
-
-**남한테 찍게 하려면** — `Copy` 를 눌러 나온 주소를 카톡으로 보낸다.
-받은 사람은 링크만 누르면 송출기가 된다. 앱 설치 없다.
-
-**화면이 꼬였으면** — 뷰어에서 `New Session`. 새 ROOM 코드가 나오고 처음부터 다시.
-
-> 코드를 **고치는** 사람만 저장소가 필요하다. 고친 뒤 Claude Code 에서 `/deploy`
-> 한 줄이면 라이브 주소까지 반영된다. 발표만 하는 사람은 볼 일 없다.
+| Camera never turns on | Check the address is `https://`. Over `http://` it fails silently |
+| `PC 화면을 찾을 수 없습니다` | Keep the viewer tab open, then press Start again on the phone |
+| Picture frozen | `New Session` on the viewer, then reopen the link on the phone |
+| Fails only on corporate/campus Wi-Fi | The firewall blocks UDP. Switch the phone to cellular |
+| (local server) the QR link will not open | Run the `python serve.py 8443 <other-ip>` line printed in the console |
 
 ---
 
-## 발표 전 체크리스트
+## Getting your team ready
 
-- [ ] 발표장 **와이파이나 LTE 가 되는지** 확인. 이제 필요한 건 그것뿐이다.
-- [ ] 폰에서 링크 한 번 열어 **카메라 권한을 미리 허용**해둘 것.
-      무대에서 하면 시간을 잡아먹는다.
-- [ ] 링크를 **폰에 미리 저장**해둘 것. 무대에서 QR 찍기가 안 되면 바로 열 수 있게.
-- [ ] (로컬 서버로 갈 경우만) **PC에 랜선을 뽑아둘 것.** 유선과 핫스팟이 동시에
-      물려 있으면 PC가 엉뚱한 주소를 QR에 넣을 수 있다.
-- [ ] 폰 화면 **자동 잠금 끄기**. (송출 중 `wakeLock` 을 걸지만 iOS는 보장되지 않는다)
-- [ ] 발표장 스피커를 켤 거면 뷰어의 `Audio` 는 **꺼둘 것.** 하울링 난다.
-- [ ] 리허설 한 번. 핫스팟 켠 그 상태 그대로.
+**Nothing to install. No account. Just the link.**
+
+**A 30-second rehearsal, alone**
+
+1. Open the link on your laptop — ROOM code and QR on the right
+2. Scan the QR with your phone → allow the camera → Start
+3. Your phone's camera appears on the laptop. Press `F` to check it fullscreen
+
+**Two minutes before you present**
+
+1. Open the link on the machine wired to the projector, press `F`
+2. Scan the QR to connect your phone
+3. Turn off the phone's auto-lock; mute the viewer with `M` to avoid feedback
+
+**To have someone else film** — press `Copy` and send them the address. They open
+it and become the caster. No app.
+
+**If it gets tangled** — `New Session` on the viewer. New room, start over.
+
+> Only people **changing** the code need the repository. After a change,
+> `/deploy` in Claude Code ships it to the live URL. Presenters never touch it.
 
 ---
 
-## 만들면서 정한 것들
+## Pre-presentation checklist
 
-**전송** — 백엔드 없이 폰→PC 실시간 영상을 보내는 실용적인 방법은 WebRTC뿐이다.
-시그널링은 PeerJS 공개 서버를 쓰고, 실제 영상 트래픽은 두 기기 사이를 직접 오간다.
-ROOM 코드는 혼동되는 글자(0/O, 1/I)를 뺀 32자 알파벳에서 `crypto.getRandomValues` 로
-6자리를 뽑는다. 코드가 이미 점유돼 있으면 자동으로 다시 발급한다.
+- [ ] Confirm the venue has **Wi-Fi or cellular**. That is now the only requirement
+- [ ] Open the link on the phone once and **allow the camera in advance** — doing
+      it on stage costs a minute you do not have
+- [ ] **Save the link on the phone** in case the QR will not scan on the day
+- [ ] **Turn off auto-lock** and charge the phone
+- [ ] If the venue speakers are live, **mute the viewer** — otherwise it howls
+- [ ] Connect once **on the actual venue network**. A UDP-blocking firewall looks
+      exactly like everything working until the moment it does not
+- [ ] (local-server fallback only) **Unplug the laptop's ethernet.** With both a
+      wired link and a hotspot connected, the machine can advertise the wrong
+      address in the QR
 
-**HTTPS가 필수인 이유** — `getUserMedia` 는 보안 컨텍스트에서만 동작한다.
-`http://192.168.x.x` 로 열면 카메라가 조용히 실패한다. GitHub Pages 에 올린 건
-이 때문이다 — 이미 신뢰받는 HTTPS 라서 인증서 경고 자체가 없어지고, 같은
-네트워크에 있을 이유도 사라진다. `serve.py` 의 자체 서명 인증서는 인터넷이 없는
-현장을 위한 대비책으로만 남겨뒀다.
+---
 
-**서로 다른 네트워크에서 붙는 법** — STUN 만으로는 양쪽 NAT 를 뚫지 못하는 경우가
-있다(회사 와이파이, 대칭형 NAT). 그래서 공개 TURN 릴레이를 후보 맨 뒤에 넣었다.
-직통이 되면 그대로 직통이고, 안 될 때만 TURN 을 경유한다. 무료 공용 릴레이라
-대역폭 보장은 없으니, 붙는 것 자체가 중요한 발표용 안전망으로 본다.
+## Design notes
 
-**디자인** — 주제가 '신호를 받아 큰 화면에 띄우는 일'이라, 방송 부조의 신호
-모니터를 언어로 삼았다. 잉크 슬레이트 바탕에 황동색을 정체성 액센트로 쓰고,
-**탈리 레드는 오직 ON AIR 상태에만** 쓴다. 대기 화면은 감광시킨 SMPTE 컬러바다.
-계측 패널(해상도·프레임레이트·비트레이트·RTT·링크 품질)은 `RTCPeerConnection.getStats()`
-실측값이고, 상단 타임코드는 방송 표기(`HH:MM:SS:FF`)를 따른다.
+**Transport** — with no backend, WebRTC is the only practical way to move live
+video from a phone to a laptop. Signalling goes through the public PeerJS
+server; the video itself travels directly between the two devices.
 
-영상 모니터링 표면이므로 다크 단일 테마로 의도적으로 고정했다.
-디스플레이는 Bahnschrift, 수치는 Cascadia Mono — 둘 다 Windows 기본 탑재라
-발표장에서 폰트 폴백 사고가 없다.
+**Why HTTPS is mandatory** — `getUserMedia` only runs in a secure context. Open
+the page over `http://192.168.x.x` and the camera fails silently. That is why
+this is on GitHub Pages: already-trusted HTTPS, no certificate warning, and no
+reason for the two devices to share a network. The self-signed certificate in
+`serve.py` is kept only as the no-internet contingency.
+
+**Connecting across networks** — STUN alone cannot always punch through both
+NATs (corporate Wi-Fi, symmetric NAT), so a public TURN relay sits at the end of
+the candidate list. Direct connections stay direct; TURN is used only when
+nothing else works. It is a free shared relay with no bandwidth guarantee — the
+trade deliberately favours connecting at all over connecting fast.
+
+**Design** — the subject is *taking a signal and putting it on a large screen*,
+so the visual language is a broadcast control room. Ink-slate ground, brass as
+the identity accent, and **tally red reserved strictly for the ON AIR state**.
+The standby screen is a desaturated SMPTE colour bar. The metrics panel
+(resolution, framerate, bitrate, RTT, link quality) reads real values from
+`RTCPeerConnection.getStats()`, and the timecode follows broadcast notation
+(`HH:MM:SS:FF`).
+
+Dark single theme on purpose — this is a video monitoring surface. Bahnschrift
+for display and Cascadia Mono for figures, both shipped with Windows, so there
+is no font-fallback surprise at the venue.
+
+---
+
+## Related
+
+[brightwindow/makerton-skills](https://github.com/brightwindow/makerton-skills) —
+a Claude Code plugin that walks people through using this, diagnoses failed
+connections, and forks this page into their own account.
+
+```bash
+claude plugin marketplace add brightwindow/makerton-skills
+claude plugin install makerton@makerton-skills
+```
