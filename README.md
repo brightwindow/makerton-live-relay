@@ -11,6 +11,18 @@ serve.py     로컬 HTTPS 서버 (인터넷 없이 돌릴 때만 필요)
 start.bat    serve.py 를 더블클릭으로 띄우는 런처
 cert.pem     자체 서명 인증서 (자동 생성 — 지우면 다시 만들어짐)
 key.pem
+
+MAKERTON_원리설명서.pdf   심사위원·팀원용 원리 설명서 (A4 8쪽)
+how-it-works.html        위 PDF 의 원본. 고쳐서 다시 뽑을 수 있다
+```
+
+PDF 를 다시 뽑으려면 `how-it-works.html` 을 고친 뒤:
+
+```powershell
+& "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --headless=new `
+  --no-pdf-header-footer --virtual-time-budget=9000 `
+  --user-data-dir="$env:TEMP\edgepdf" `
+  --print-to-pdf="$PWD\MAKERTON_원리설명서.pdf" "$PWD\how-it-works.html"
 ```
 
 ---
