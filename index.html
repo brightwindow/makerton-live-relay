@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>MAKERTON — LIVE RELAY</title>
+<meta name="theme-color" content="#070910" />
+<style>
+/* ─────────────────────────────────────────────────────────────
+   MAKERTON · LIVE RELAY
+   Design language: broadcast control-room signal monitor.
+   Ground = deep ink slate. Identity accent = brass (rack hardware).
+   Tally red is reserved exclusively for the ON AIR state.
+   Committed dark-only: this is a video monitoring surface.
+   ───────────────────────────────────────────────────────────── */
+
+:root{
+  --ink-900:#070910;
+  --ink-850:#0A0E16;
+  --ink-800:#0D121C;
+  --ink-700:#121927;
+  --ink-600:#1A2333;
+
+  --line:rgba(122,142,178,.15);
+  --line-2:rgba(122,142,178,.28);
+
+  --text:#D7DDE9;
+  --muted:#78859B;
+  --dim:#4B586D;
+
+  --brass:#D8A657;
+  --brass-2:#8C6C33;
+  --brass-glow:rgba(216,166,87,.35);
+
+  --tally:#FF3326;
+  --good:#4FD1A5;
+  --warn:#E8B44C;
+
+  --f-display:"Bahnschrift","Archivo Narrow","Roboto Condensed","Oswald",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"Segoe UI Variable Text","Segoe UI","Pretendard",system-ui,-apple-system,"Malgun Gothic","Apple SD Gothic Neo",sans-serif;
+  --f-mono:"Cascadia Mono","Cascadia Code",Consolas,ui-monospace,SFMono-Regular,"Roboto Mono",monospace;
+
+  --r:3px;
+  --pad:clamp(14px,2vw,26px);
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  background:var(--ink-900);
+  color:var(--text);
+  font-family:var(--f-body);
+  font-size:14px;
+  line-height:1.55;
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+
+/* film grain over the whole console */
+.grain{
+  position:fixed;inset:0;pointer-events:none;z-index:90;opacity:.5;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.42'/%3E%3C/svg%3E");
+}
+/* faint brass vignette so the console reads as lit hardware */
+.vignette{
+  position:fixed;inset:0;pointer-events:none;z-index:1;
+  background:
+    radial-gradient(120% 90% at 50% -10%, rgba(216,166,87,.055), transparent 62%),
+    radial-gradient(140% 110% at 50% 110%, rgba(0,0,0,.65), transparent 60%);
+}
+
+/* ── shell ─────────────────────────────────────────────── */
+.shell{
+  position:relative;z-index:2;
+  height:100%;
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto;
+}
+
+/* ── top rail ──────────────────────────────────────────── */
+.rail-top{
+  display:flex;align-items:center;gap:20px;
+  padding:12px var(--pad);
+  border-bottom:1px solid var(--line);
+  background:linear-gradient(180deg,var(--ink-850),var(--ink-900));
+}
+.lockup{display:flex;align-items:center;gap:12px;min-width:0}
+.sigil{
+  width:30px;height:30px;flex:none;
+  border:1px solid var(--brass-2);
+  display:grid;place-items:center;
+  position:relative;
+}
+.sigil::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--brass);box-shadow:0 0 10px var(--brass-glow)}
+.sigil::after{content:"";position:absolute;inset:4px;border:1px solid rgba(216,166,87,.22)}
+.wordmark{display:flex;flex-direction:column;line-height:1;min-width:0}
+.wordmark b{
+  font-family:var(--f-display);font-weight:600;font-size:19px;
+  letter-spacing:.26em;text-transform:uppercase;color:var(--text);
+}
+.wordmark span{
+  font-size:10px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--dim);margin-top:5px;font-family:var(--f-mono);
+}
+
+.tc{
+  margin-left:auto;margin-right:auto;
+  font-family:var(--f-mono);font-size:15px;letter-spacing:.14em;
+  font-variant-numeric:tabular-nums;color:var(--dim);
+  display:flex;align-items:baseline;gap:10px;
+}
+.tc small{font-size:9px;letter-spacing:.22em;color:var(--dim);opacity:.7}
+body[data-state="live"] .tc{color:var(--brass)}
+
+.chip{
+  display:inline-flex;align-items:center;gap:9px;
+  font-family:var(--f-display);font-size:12px;font-weight:600;
+  letter-spacing:.24em;text-transform:uppercase;
+  padding:7px 14px;border:1px solid var(--line-2);color:var(--muted);
+  white-space:nowrap;
+}
+.chip i{width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}
+body[data-state="linking"] .chip{color:var(--warn);border-color:rgba(232,180,76,.4)}
+body[data-state="linking"] .chip i{animation:blink 1s steps(2,end) infinite}
+body[data-state="live"] .chip{color:var(--tally);border-color:rgba(255,51,38,.45);background:rgba(255,51,38,.07)}
+body[data-state="live"] .chip i{box-shadow:0 0 12px var(--tally);animation:pulse 1.6s ease-in-out infinite}
+@keyframes blink{50%{opacity:.15}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.45}}
+
+/* ── console ───────────────────────────────────────────── */
+.console{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 352px;
+  gap:var(--pad);
+  padding:var(--pad);
+  min-height:0;
+}
+
+/* ── stage / monitor ───────────────────────────────────── */
+.stage{display:flex;flex-direction:column;min-width:0;min-height:0;gap:10px}
+.monitor{
+  position:relative;flex:1;min-height:0;
+  background:#04060B;
+  border:1px solid var(--line-2);
+  overflow:hidden;
+  box-shadow:inset 0 0 90px rgba(0,0,0,.9), 0 24px 60px rgba(0,0,0,.55);
+}
+.monitor video{
+  position:absolute;inset:0;width:100%;height:100%;
+  object-fit:contain;background:#04060B;
+  opacity:0;transition:opacity .6s ease;
+}
+body[data-state="live"] .monitor video{opacity:1}
+
+/* SMPTE bars — the idle state of a real monitor */
+.bars{position:absolute;inset:0;opacity:.2;transition:opacity .5s ease}
+body[data-state="live"] .bars{opacity:0}
+.bars-main{
+  position:absolute;left:0;right:0;top:0;height:74%;
+  background:linear-gradient(90deg,
+    #b8b8b8 0 14.28%, #b8b800 14.28% 28.57%, #00b8b8 28.57% 42.85%,
+    #00b800 42.85% 57.14%, #b800b8 57.14% 71.42%, #b80000 71.42% 85.71%,
+    #0000b8 85.71% 100%);
+}
+.bars-cast{
+  position:absolute;left:0;right:0;top:74%;height:9%;
+  background:linear-gradient(90deg,
+    #0000b8 0 14.28%, #131313 14.28% 28.57%, #b800b8 28.57% 42.85%,
+    #131313 42.85% 57.14%, #00b8b8 57.14% 71.42%, #131313 71.42% 85.71%,
+    #b8b8b8 85.71% 100%);
+}
+.bars-pluge{
+  position:absolute;left:0;right:0;top:83%;bottom:0;
+  background:linear-gradient(90deg,
+    #0a1a4a 0 17%, #ffffff 17% 33%, #2d0a4a 33% 50%,
+    #131313 50% 71%, #050505 71% 78%, #131313 78% 85%, #1c1c1c 85% 100%);
+}
+.bars-noise{
+  position:absolute;inset:0;opacity:.35;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='m'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23m)'/%3E%3C/svg%3E");
+}
+
+/* scanlines + phosphor bloom */
+.scan{
+  position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(180deg,rgba(255,255,255,.028) 0 1px,transparent 1px 3px);
+}
+.bloom{
+  position:absolute;inset:0;pointer-events:none;
+  background:radial-gradient(75% 60% at 50% 45%,transparent 40%,rgba(0,0,0,.55) 100%);
+}
+
+/* framing / registration marks */
+.marks{position:absolute;inset:16px;pointer-events:none}
+.marks span{position:absolute;width:20px;height:20px;border:1px solid rgba(216,166,87,.42)}
+.marks span:nth-child(1){top:0;left:0;border-right:0;border-bottom:0}
+.marks span:nth-child(2){top:0;right:0;border-left:0;border-bottom:0}
+.marks span:nth-child(3){bottom:0;left:0;border-right:0;border-top:0}
+.marks span:nth-child(4){bottom:0;right:0;border-left:0;border-top:0}
+
+/* tally strip across the top of the bezel */
+.tally-bar{
+  position:absolute;top:0;left:0;right:0;height:2px;
+  background:var(--line-2);transition:background .3s,box-shadow .3s;
+}
+body[data-state="live"] .tally-bar{
+  background:var(--tally);
+  box-shadow:0 0 22px 2px rgba(255,51,38,.65);
+  animation:tallybreathe 2.4s ease-in-out infinite;
+}
+@keyframes tallybreathe{0%,100%{opacity:1}50%{opacity:.62}}
+
+/* standby caption inside the monitor */
+.standby{
+  position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:14px;
+  text-align:center;padding:24px;transition:opacity .4s ease;
+}
+body[data-state="live"] .standby{opacity:0;pointer-events:none}
+.standby h1{
+  margin:0;font-family:var(--f-display);font-weight:600;
+  font-size:clamp(30px,4.4vw,62px);letter-spacing:.3em;text-indent:.3em;
+  text-transform:uppercase;color:var(--text);
+  text-shadow:0 0 40px rgba(0,0,0,.9);
+}
+.standby p{
+  margin:0;max-width:44ch;color:var(--muted);font-size:13.5px;
+  text-shadow:0 1px 12px rgba(0,0,0,.95);text-wrap:balance;
+}
+.standby .rule{width:120px;height:1px;background:linear-gradient(90deg,transparent,var(--brass),transparent)}
+
+/* overlay HUD on the live picture */
+.hud{
+  position:absolute;left:18px;bottom:16px;right:18px;
+  display:flex;align-items:flex-end;justify-content:space-between;gap:16px;
+  font-family:var(--f-mono);font-size:10.5px;letter-spacing:.14em;
+  color:rgba(215,221,233,.72);text-transform:uppercase;
+  opacity:0;transition:opacity .4s ease;pointer-events:none;
+  text-shadow:0 1px 8px rgba(0,0,0,.95);
+}
+body[data-state="live"] .hud{opacity:1}
+.hud .onair{color:var(--tally);letter-spacing:.3em;font-weight:700}
+
+/* transport bar under the monitor */
+.transport{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+  padding:9px 12px;border:1px solid var(--line);background:var(--ink-850);
+}
+.transport .spacer{flex:1}
+.hint{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;
+  color:var(--dim);text-transform:uppercase;
+}
+
+/* ── buttons ───────────────────────────────────────────── */
+.btn{
+  font-family:var(--f-display);font-size:12px;font-weight:600;
+  letter-spacing:.2em;text-transform:uppercase;
+  color:var(--text);background:var(--ink-700);
+  border:1px solid var(--line-2);border-radius:var(--r);
+  padding:9px 15px;cursor:pointer;
+  transition:border-color .18s,color .18s,background .18s,transform .1s;
+}
+.btn:hover{border-color:var(--brass-2);color:#fff}
+.btn:active{transform:translateY(1px)}
+.btn:focus-visible{outline:2px solid var(--brass);outline-offset:2px}
+.btn[disabled]{opacity:.35;cursor:not-allowed}
+.btn.primary{
+  background:linear-gradient(180deg,rgba(216,166,87,.2),rgba(216,166,87,.09));
+  border-color:var(--brass-2);color:var(--brass);
+}
+.btn.primary:hover{background:rgba(216,166,87,.26);color:#F3D9A6}
+.btn.danger{color:var(--tally);border-color:rgba(255,51,38,.35)}
+.btn.danger:hover{background:rgba(255,51,38,.12);border-color:var(--tally)}
+.btn[aria-pressed="true"]{border-color:var(--brass);color:var(--brass)}
+
+/* ── instrument rail ───────────────────────────────────── */
+.rail{
+  display:flex;flex-direction:column;gap:var(--pad);
+  min-height:0;overflow-y:auto;overscroll-behavior:contain;
+  scrollbar-width:thin;scrollbar-color:var(--ink-600) transparent;
+}
+.panel{border:1px solid var(--line);background:var(--ink-800);flex:none}
+.panel > header{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 13px;border-bottom:1px solid var(--line);
+  background:var(--ink-850);
+}
+.panel > header h2{
+  margin:0;font-family:var(--f-display);font-size:11px;font-weight:600;
+  letter-spacing:.26em;text-transform:uppercase;color:var(--muted);
+}
+.panel > header .tag{
+  margin-left:auto;font-family:var(--f-mono);font-size:9.5px;
+  letter-spacing:.16em;color:var(--dim);text-transform:uppercase;
+}
+.panel .body{padding:14px 13px}
+
+/* link panel — the brass-framed paper plaque */
+.plaque{
+  background:#F2EFE6;border:1px solid var(--brass-2);
+  padding:11px;display:grid;place-items:center;
+  box-shadow:0 6px 24px rgba(0,0,0,.5);
+}
+.plaque canvas,.plaque img{display:block;width:100%;height:auto;image-rendering:pixelated}
+.plaque.empty{
+  min-height:150px;background:var(--ink-700);border-style:dashed;border-color:var(--line-2);
+  color:var(--dim);font-family:var(--f-mono);font-size:10.5px;letter-spacing:.14em;text-align:center;
+}
+.roomcode{
+  margin-top:13px;display:flex;align-items:center;gap:10px;
+}
+.roomcode .k{
+  font-family:var(--f-mono);font-size:9.5px;letter-spacing:.2em;
+  color:var(--dim);text-transform:uppercase;
+}
+.roomcode .v{
+  font-family:var(--f-mono);font-size:19px;letter-spacing:.24em;
+  color:var(--brass);font-variant-numeric:tabular-nums;
+}
+.linkline{
+  margin-top:10px;display:flex;gap:7px;
+}
+.linkline input{
+  flex:1;min-width:0;background:var(--ink-900);border:1px solid var(--line);
+  color:var(--muted);font-family:var(--f-mono);font-size:10.5px;
+  padding:7px 9px;border-radius:var(--r);
+}
+.linkline input:focus{outline:1px solid var(--brass-2);color:var(--text)}
+.helper{
+  margin:11px 0 0;font-size:12px;color:var(--muted);line-height:1.6;
+}
+.helper b{color:var(--brass);font-weight:600}
+
+/* telemetry readouts */
+.readouts{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line);border:1px solid var(--line)}
+.ro{background:var(--ink-800);padding:11px 12px;display:flex;flex-direction:column;gap:5px}
+.ro dt{
+  font-family:var(--f-mono);font-size:9px;letter-spacing:.2em;
+  color:var(--dim);text-transform:uppercase;
+}
+.ro dd{
+  margin:0;font-family:var(--f-mono);font-size:16px;letter-spacing:.04em;
+  color:var(--text);font-variant-numeric:tabular-nums;
+}
+.ro dd em{font-style:normal;font-size:10px;color:var(--dim);margin-left:3px;letter-spacing:.1em}
+.ro.wide{grid-column:1/-1}
+.ro[data-level="good"] dd{color:var(--good)}
+.ro[data-level="warn"] dd{color:var(--warn)}
+.ro[data-level="bad"] dd{color:var(--tally)}
+
+/* signal meter */
+.meter{height:3px;background:var(--ink-600);overflow:hidden;margin-top:2px}
+.meter i{display:block;height:100%;width:0;background:var(--brass);transition:width .5s ease,background .3s}
+
+/* event log */
+.log{
+  margin:0;padding:0;list-style:none;max-height:158px;overflow-y:auto;
+  font-family:var(--f-mono);font-size:10.5px;line-height:1.85;
+  scrollbar-width:thin;scrollbar-color:var(--ink-600) transparent;
+}
+.log li{display:flex;gap:9px;color:var(--muted);border-bottom:1px dotted rgba(122,142,178,.09);padding:2px 0}
+.log li:last-child{border-bottom:0}
+.log time{color:var(--brass-2);flex:none;font-variant-numeric:tabular-nums}
+.log li[data-k="err"]{color:var(--tally)}
+.log li[data-k="ok"]{color:var(--good)}
+
+/* ── bottom status ribbon ──────────────────────────────── */
+.rail-bot{
+  display:flex;align-items:center;gap:22px;flex-wrap:wrap;
+  padding:8px var(--pad);border-top:1px solid var(--line);
+  background:var(--ink-850);
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--dim);
+}
+.rail-bot b{color:var(--muted);font-weight:400}
+.rail-bot .sep{width:1px;height:11px;background:var(--line-2)}
+.rail-bot .end{margin-left:auto;display:flex;gap:18px;align-items:center}
+kbd{
+  font-family:var(--f-mono);font-size:9.5px;border:1px solid var(--line-2);
+  border-radius:2px;padding:1px 5px;color:var(--muted);
+}
+
+/* ── caster (phone) view ───────────────────────────────── */
+#caster{display:none}
+body[data-role="cast"] #viewer{display:none}
+body[data-role="cast"] #caster{display:flex}
+body[data-role="cast"]{overflow:auto}
+
+#caster{
+  flex-direction:column;height:100%;position:relative;z-index:2;
+}
+.cast-head{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 18px;border-bottom:1px solid var(--line);
+}
+.cast-stage{
+  position:relative;flex:1;min-height:0;background:#04060B;overflow:hidden;
+}
+.cast-stage video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cast-stage .marks{inset:12px}
+.cast-badge{
+  position:absolute;top:14px;left:14px;
+  display:inline-flex;align-items:center;gap:8px;
+  padding:6px 12px;border:1px solid var(--line-2);background:rgba(7,9,16,.72);
+  font-family:var(--f-display);font-size:11px;font-weight:600;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--muted);backdrop-filter:blur(8px);
+}
+.cast-badge i{width:6px;height:6px;border-radius:50%;background:currentColor}
+body[data-cast="live"] .cast-badge{color:var(--tally);border-color:rgba(255,51,38,.5);background:rgba(255,51,38,.12)}
+body[data-cast="live"] .cast-badge i{box-shadow:0 0 10px var(--tally);animation:pulse 1.6s ease-in-out infinite}
+.cast-foot{
+  padding:16px 18px calc(16px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--line);background:var(--ink-850);
+  display:flex;flex-direction:column;gap:12px;
+}
+.cast-row{display:flex;gap:9px}
+.cast-row .btn{flex:1;padding:14px 10px;font-size:12.5px}
+.cast-note{
+  font-family:var(--f-mono);font-size:10px;letter-spacing:.14em;
+  color:var(--dim);text-transform:uppercase;text-align:center;
+}
+
+/* ── entrance sequence ─────────────────────────────────── */
+@keyframes rise{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:none}}
+@keyframes wipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}
+.rail-top{animation:wipe .7s cubic-bezier(.22,.7,.3,1) both}
+.stage{animation:rise .8s cubic-bezier(.22,.7,.3,1) .12s both}
+.rail > .panel:nth-child(1){animation:rise .7s cubic-bezier(.22,.7,.3,1) .26s both}
+.rail > .panel:nth-child(2){animation:rise .7s cubic-bezier(.22,.7,.3,1) .36s both}
+.rail > .panel:nth-child(3){animation:rise .7s cubic-bezier(.22,.7,.3,1) .46s both}
+.rail-bot{animation:rise .7s cubic-bezier(.22,.7,.3,1) .56s both}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation:none!important;transition-duration:.01ms!important}
+}
+
+/* ── responsive ────────────────────────────────────────── */
+@media (max-width:1120px){
+  body{overflow:auto}
+  .shell{height:auto;min-height:100%}
+  .console{grid-template-columns:1fr}
+  .monitor{aspect-ratio:16/9;flex:none}
+  .tc{margin-right:0}
+}
+@media (max-width:620px){
+  .rail-top{flex-wrap:wrap}
+  .tc{order:3;width:100%;margin:0}
+  .readouts{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body data-role="viewer" data-state="standby" data-cast="idle">
+<div class="vignette"></div>
+<div class="grain"></div>
+
+<!-- ══════════════════ VIEWER (PC) ══════════════════ -->
+<div class="shell" id="viewer">
+
+  <header class="rail-top">
+    <div class="lockup">
+      <div class="sigil" aria-hidden="true"></div>
+      <div class="wordmark">
+        <b>Makerton</b>
+        <span>Live Relay · 실시간 영상 중계</span>
+      </div>
+    </div>
+
+    <div class="tc"><small>TC</small><span id="tc">00:00:00:00</span></div>
+
+    <div class="chip" id="stateChip" role="status" aria-live="polite">
+      <i></i><span id="stateText">Standby</span>
+    </div>
+  </header>
+
+  <main class="console">
+
+    <!-- ── program monitor ── -->
+    <section class="stage">
+      <div class="monitor" id="monitor">
+        <div class="bars" aria-hidden="true">
+          <div class="bars-main"></div>
+          <div class="bars-cast"></div>
+          <div class="bars-pluge"></div>
+          <div class="bars-noise"></div>
+        </div>
+
+        <video id="feed" autoplay playsinline></video>
+
+        <div class="scan" aria-hidden="true"></div>
+        <div class="bloom" aria-hidden="true"></div>
+        <div class="marks" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+        <div class="tally-bar" aria-hidden="true"></div>
+
+        <div class="standby" id="standby">
+          <h1>Standby</h1>
+          <div class="rule"></div>
+          <p>오른쪽 QR 코드를 스마트폰 카메라로 찍으면 이 화면에 실시간 영상이 뜹니다. 신호는 기기 간 직접(P2P) 전송되며 서버에 저장되지 않습니다.</p>
+        </div>
+
+        <div class="hud" aria-hidden="true">
+          <span class="onair">● On Air</span>
+          <span id="hudMeta">—</span>
+        </div>
+      </div>
+
+      <div class="transport">
+        <button class="btn" id="btnAudio" aria-pressed="false" title="M">Audio</button>
+        <button class="btn" id="btnFull" title="F">Fullscreen</button>
+        <button class="btn" id="btnSnap">Snapshot</button>
+        <span class="spacer"></span>
+        <span class="hint" id="transportHint">신호 대기 중</span>
+        <button class="btn danger" id="btnReset">New Session</button>
+      </div>
+    </section>
+
+    <!-- ── instrument rail ── -->
+    <aside class="rail">
+
+      <section class="panel">
+        <header><h2>Connect</h2><span class="tag" id="connTag">QR SCAN</span></header>
+        <div class="body">
+          <div class="plaque empty" id="plaque">코드 생성 중…</div>
+
+          <div class="roomcode">
+            <span class="k">Room</span>
+            <span class="v" id="roomCode">······</span>
+          </div>
+
+          <div class="linkline">
+            <input id="castUrl" readonly aria-label="스마트폰 접속 주소" />
+            <button class="btn" id="btnCopy">Copy</button>
+          </div>
+
+          <p class="helper">
+            스마트폰 카메라 앱으로 QR을 찍고 → <b>방송 시작</b>을 누르세요.
+            카메라 권한은 <b>HTTPS</b>에서만 열립니다.
+          </p>
+        </div>
+      </section>
+
+      <section class="panel">
+        <header><h2>Signal</h2><span class="tag" id="sigTag">NO INPUT</span></header>
+        <div class="body">
+          <dl class="readouts">
+            <div class="ro"><dt>Resolution</dt><dd id="mRes">—</dd></div>
+            <div class="ro"><dt>Framerate</dt><dd id="mFps">—<em>fps</em></dd></div>
+            <div class="ro"><dt>Bitrate</dt><dd id="mBr">—<em>kbps</em></dd></div>
+            <div class="ro"><dt>Round Trip</dt><dd id="mRtt">—<em>ms</em></dd></div>
+            <div class="ro wide">
+              <dt>Link Quality</dt>
+              <dd id="mQual">—</dd>
+              <div class="meter"><i id="mBar"></i></div>
+            </div>
+            <div class="ro wide"><dt>Elapsed</dt><dd id="mDur">00:00:00</dd></div>
+          </dl>
+        </div>
+      </section>
+
+      <section class="panel">
+        <header><h2>Log</h2><span class="tag">SESSION</span></header>
+        <div class="body">
+          <ul class="log" id="log"></ul>
+        </div>
+      </section>
+
+    </aside>
+  </main>
+
+  <footer class="rail-bot">
+    <span>Transport <b>WebRTC · P2P</b></span>
+    <span class="sep"></span>
+    <span>ICE <b id="iceState">idle</b></span>
+    <span class="sep"></span>
+    <span>Codec <b id="codecName">—</b></span>
+    <div class="end">
+      <span><kbd>F</kbd> 전체화면</span>
+      <span><kbd>M</kbd> 소리</span>
+      <span><kbd>S</kbd> 스냅샷</span>
+    </div>
+  </footer>
+</div>
+
+<!-- ══════════════════ CASTER (PHONE) ══════════════════ -->
+<div id="caster">
+  <header class="cast-head">
+    <div class="lockup">
+      <div class="sigil" aria-hidden="true"></div>
+      <div class="wordmark">
+        <b>Field Unit</b>
+        <span>Room <span id="castRoom">—</span></span>
+      </div>
+    </div>
+  </header>
+
+  <div class="cast-stage">
+    <video id="preview" autoplay playsinline muted></video>
+    <div class="marks" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+    <div class="cast-badge"><i></i><span id="castState">Standby</span></div>
+  </div>
+
+  <div class="cast-foot">
+    <div class="cast-row">
+      <button class="btn primary" id="btnGo">방송 시작</button>
+      <button class="btn" id="btnFlip">카메라 전환</button>
+    </div>
+    <div class="cast-row">
+      <button class="btn danger" id="btnStop" disabled>방송 종료</button>
+    </div>
+    <p class="cast-note" id="castNote">카메라 권한을 허용해 주세요</p>
+  </div>
+</div>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script>
+(() => {
+'use strict';
+
+/* ── shared helpers ─────────────────────────────────────── */
+const $ = (s) => document.querySelector(s);
+const PREFIX = 'mkrt';
+const ALPHA  = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no 0/O/1/I
+// STUN alone only works when both sides can be punched through directly.
+// Once the two devices are on different networks (phone on LTE, PC on office
+// Wi-Fi), a strict NAT will block that — so a public TURN relay is listed as
+// the fallback path. Video still never touches our server; TURN only relays
+// when nothing else connects.
+const ICE = { iceServers: [
+  { urls: 'stun:stun.l.google.com:19302' },
+  { urls: 'stun:stun1.l.google.com:19302' },
+  { urls: 'stun:global.stun.twilio.com:3478' },
+  { urls: 'turn:openrelay.metered.ca:80',            username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:openrelay.metered.ca:443',           username: 'openrelayproject', credential: 'openrelayproject' },
+  { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' },
+]};
+
+const makeRoom = (n = 6) => {
+  const buf = new Uint32Array(n);
+  crypto.getRandomValues(buf);
+  return Array.from(buf, (v) => ALPHA[v % ALPHA.length]).join('');
+};
+const pad = (n, w = 2) => String(n).padStart(w, '0');
+const clock = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`; };
+
+const params = new URLSearchParams(location.search);
+const role   = params.get('role') === 'cast' ? 'cast' : 'viewer';
+document.body.dataset.role = role;
+
+if (typeof Peer === 'undefined') {
+  alert('연결 라이브러리를 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 새로고침해 주세요.');
+}
+
+/* ══════════════════════════════════════════════════════════
+   VIEWER — the control-room console
+   ══════════════════════════════════════════════════════════ */
+function bootViewer() {
+  const logEl = $('#log');
+  const feed  = $('#feed');
+  let peer = null, activeCall = null, statsTimer = null, tcTimer = null;
+  let startedAt = 0, lastBytes = 0, lastAt = 0;
+  let room = params.get('room') || makeRoom();
+
+  const say = (msg, kind = '') => {
+    const li = document.createElement('li');
+    if (kind) li.dataset.k = kind;
+    li.innerHTML = `<time>${clock()}</time><span></span>`;
+    li.lastChild.textContent = msg;
+    logEl.prepend(li);
+    while (logEl.children.length > 40) logEl.lastChild.remove();
+  };
+
+  const setState = (s, label) => {
+    document.body.dataset.state = s;
+    $('#stateText').textContent = label;
+  };
+
+  /* ── connect panel ── */
+  const castLink = () => `${location.origin}${location.pathname}?role=cast&room=${room}`;
+
+  function paintConnect() {
+    $('#roomCode').textContent = room;
+    $('#castUrl').value = castLink();
+
+    const plaque = $('#plaque');
+    if (typeof QRCode === 'undefined') {
+      plaque.className = 'plaque empty';
+      plaque.textContent = 'QR 생성 실패 — 아래 주소를 폰에 직접 입력하세요';
+      return;
+    }
+    const cv = document.createElement('canvas');
+    QRCode.toCanvas(cv, castLink(), {
+      width: 640, margin: 1, errorCorrectionLevel: 'M',
+      color: { dark: '#0A0D13FF', light: '#F2EFE6FF' },
+    }, (err) => {
+      if (err) { plaque.className = 'plaque empty'; plaque.textContent = 'QR 생성 실패'; return; }
+      plaque.className = 'plaque';
+      plaque.replaceChildren(cv);
+    });
+  }
+
+  /* ── signalling ── */
+  function openPeer() {
+    if (peer) { try { peer.destroy(); } catch (e) {} }
+    setState('standby', 'Standby');
+    peer = new Peer(`${PREFIX}-${room}`, { config: ICE, debug: 1 });
+
+    peer.on('open', () => {
+      paintConnect();
+      say(`세션 개설 · ROOM ${room}`, 'ok');
+      $('#connTag').textContent = 'READY';
+    });
+
+    peer.on('call', (call) => {
+      say('스마트폰 접속 요청', 'ok');
+      setState('linking', 'Linking');
+      $('#transportHint').textContent = '연결 협상 중…';
+
+      if (activeCall) { try { activeCall.close(); } catch (e) {} }
+      activeCall = call;
+      call.answer();                       // receive-only
+
+      call.on('stream', (stream) => attach(stream, call));
+      call.on('close', () => dropStream('스마트폰이 방송을 종료했습니다'));
+      call.on('error', (e) => say(`통신 오류: ${e.type || e}`, 'err'));
+
+      const pc = call.peerConnection;
+      if (pc) pc.addEventListener('iceconnectionstatechange', () => {
+        $('#iceState').textContent = pc.iceConnectionState;
+        if (['failed', 'disconnected'].includes(pc.iceConnectionState))
+          say(`네트워크 상태: ${pc.iceConnectionState}`, 'err');
+      });
+    });
+
+    peer.on('error', (e) => {
+      if (e.type === 'unavailable-id') {
+        say('세션 코드 충돌 — 새 코드 발급', 'err');
+        room = makeRoom(); openPeer(); return;
+      }
+      say(`시그널링 오류: ${e.type || e.message}`, 'err');
+    });
+
+    peer.on('disconnected', () => {
+      say('시그널링 서버 연결 끊김 — 재연결 시도', 'err');
+      setTimeout(() => { try { peer.reconnect(); } catch (e) {} }, 1200);
+    });
+  }
+
+  /* ── picture on / off ── */
+  async function attach(stream, call) {
+    feed.muted = $('#btnAudio').getAttribute('aria-pressed') !== 'true';
+    feed.srcObject = stream;
+    try { await feed.play(); } catch (e) { feed.muted = true; feed.play().catch(() => {}); }
+
+    setState('live', 'On Air');
+    $('#sigTag').textContent = 'LOCKED';
+    $('#transportHint').textContent = '수신 중';
+    say('영상 수신 시작', 'ok');
+
+    startedAt = Date.now(); lastBytes = 0; lastAt = 0;
+    startTimecode();
+    clearInterval(statsTimer);
+    statsTimer = setInterval(() => readStats(call), 1000);
+
+    stream.getVideoTracks()[0]?.addEventListener('ended', () => dropStream('영상 트랙 종료'));
+  }
+
+  function dropStream(reason) {
+    if (document.body.dataset.state !== 'live') return;
+    clearInterval(statsTimer); clearInterval(tcTimer);
+    feed.srcObject = null;
+    setState('standby', 'Standby');
+    $('#sigTag').textContent = 'NO INPUT';
+    $('#transportHint').textContent = '신호 대기 중';
+    ['#mRes', '#mFps', '#mBr', '#mRtt', '#mQual'].forEach((s) => $(s).childNodes[0].nodeValue = '—');
+    $('#mBar').style.width = '0';
+    $('#codecName').textContent = '—';
+    say(reason, 'err');
+  }
+
+  /* ── telemetry ── */
+  async function readStats(call) {
+    const pc = call.peerConnection;
+    if (!pc) return;
+    let stats; try { stats = await pc.getStats(); } catch (e) { return; }
+
+    let inb = null, pair = null, codec = null;
+    stats.forEach((r) => {
+      if (r.type === 'inbound-rtp' && r.kind === 'video') inb = r;
+      if (r.type === 'candidate-pair' && r.state === 'succeeded' && r.nominated !== false) pair = r;
+    });
+    if (inb && inb.codecId) codec = stats.get(inb.codecId);
+
+    if (inb) {
+      const w = inb.frameWidth, h = inb.frameHeight;
+      setVal('#mRes', w && h ? `${w}×${h}` : '—');
+      setVal('#mFps', inb.framesPerSecond != null ? Math.round(inb.framesPerSecond) : '—');
+
+      const now = inb.timestamp, bytes = inb.bytesReceived || 0;
+      if (lastAt && now > lastAt) {
+        const kbps = Math.round(((bytes - lastBytes) * 8) / (now - lastAt));
+        setVal('#mBr', kbps.toLocaleString());
+      }
+      lastBytes = bytes; lastAt = now;
+
+      $('#hudMeta').textContent = `${w || '?'}×${h || '?'} · ${Math.round(inb.framesPerSecond || 0)}p/s`;
+    }
+
+    if (codec) $('#codecName').textContent = (codec.mimeType || '').split('/')[1] || '—';
+
+    let rtt = null;
+    if (pair && pair.currentRoundTripTime != null) {
+      rtt = Math.round(pair.currentRoundTripTime * 1000);
+      setVal('#mRtt', rtt);
+    }
+
+    // link quality: RTT + packet loss, expressed as a 0–100 bar
+    let score = 100;
+    if (rtt != null) score -= Math.min(60, rtt * 0.6);
+    if (inb && inb.packetsLost && inb.packetsReceived) {
+      const loss = inb.packetsLost / (inb.packetsLost + inb.packetsReceived);
+      score -= Math.min(40, loss * 400);
+    }
+    score = Math.max(0, Math.round(score));
+    const q = score >= 75 ? ['우수', 'good'] : score >= 45 ? ['보통', 'warn'] : ['불안정', 'bad'];
+    setVal('#mQual', `${q[0]} ${score}`);
+    $('#mQual').closest('.ro').dataset.level = q[1];
+    const bar = $('#mBar');
+    bar.style.width = score + '%';
+    bar.style.background = q[1] === 'good' ? 'var(--good)' : q[1] === 'warn' ? 'var(--warn)' : 'var(--tally)';
+
+    const el = Math.floor((Date.now() - startedAt) / 1000);
+    $('#mDur').textContent = `${pad(Math.floor(el / 3600))}:${pad(Math.floor(el / 60) % 60)}:${pad(el % 60)}`;
+  }
+
+  const setVal = (sel, v) => { $(sel).childNodes[0].nodeValue = v; };
+
+  /* ── broadcast timecode ── */
+  function startTimecode() {
+    clearInterval(tcTimer);
+    const t0 = Date.now();
+    tcTimer = setInterval(() => {
+      const ms = Date.now() - t0;
+      const f  = Math.floor((ms % 1000) / 33.367);
+      const s  = Math.floor(ms / 1000);
+      $('#tc').textContent =
+        `${pad(Math.floor(s / 3600))}:${pad(Math.floor(s / 60) % 60)}:${pad(s % 60)}:${pad(f)}`;
+    }, 40);
+  }
+
+  /* ── transport controls ── */
+  $('#btnAudio').addEventListener('click', (e) => {
+    const on = e.currentTarget.getAttribute('aria-pressed') === 'true';
+    e.currentTarget.setAttribute('aria-pressed', String(!on));
+    feed.muted = on;
+    if (!on) feed.play().catch(() => {});
+    say(on ? '소리 끔' : '소리 켬');
+  });
+
+  $('#btnFull').addEventListener('click', () => {
+    const m = $('#monitor');
+    if (document.fullscreenElement) document.exitFullscreen();
+    else m.requestFullscreen?.().catch(() => {});
+  });
+
+  $('#btnSnap').addEventListener('click', () => {
+    if (!feed.videoWidth) { say('캡처할 영상이 없습니다', 'err'); return; }
+    const cv = document.createElement('canvas');
+    cv.width = feed.videoWidth; cv.height = feed.videoHeight;
+    cv.getContext('2d').drawImage(feed, 0, 0);
+    const a = document.createElement('a');
+    a.download = `makerton-${room}-${Date.now()}.png`;
+    a.href = cv.toDataURL('image/png');
+    a.click();
+    say('스냅샷 저장됨', 'ok');
+  });
+
+  $('#btnCopy').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(castLink());
+      $('#btnCopy').textContent = 'Copied';
+      setTimeout(() => ($('#btnCopy').textContent = 'Copy'), 1400);
+    } catch (e) {
+      $('#castUrl').select();
+      say('클립보드 접근 불가 — 주소가 선택되었습니다', 'err');
+    }
+  });
+
+  $('#btnReset').addEventListener('click', () => {
+    if (activeCall) { try { activeCall.close(); } catch (e) {} }
+    dropStream('세션을 새로 시작합니다');
+    room = makeRoom();
+    history.replaceState(null, '', `${location.pathname}`);
+    openPeer();
+  });
+
+  document.addEventListener('keydown', (e) => {
+    if (e.target.tagName === 'INPUT') return;
+    const k = e.key.toLowerCase();
+    if (k === 'f') $('#btnFull').click();
+    if (k === 'm') $('#btnAudio').click();
+    if (k === 's') $('#btnSnap').click();
+  });
+
+  paintConnect();
+  openPeer();
+  say('콘솔 준비 완료');
+}
+
+/* ══════════════════════════════════════════════════════════
+   CASTER — the phone-side field unit
+   ══════════════════════════════════════════════════════════ */
+function bootCaster() {
+  const room = (params.get('room') || '').toUpperCase();
+  const preview = $('#preview');
+  let stream = null, peer = null, call = null, facing = 'environment';
+
+  $('#castRoom').textContent = room || '없음';
+  const note = (t) => ($('#castNote').textContent = t);
+  const setCast = (s, label) => { document.body.dataset.cast = s; $('#castState').textContent = label; };
+
+  if (!room) {
+    note('접속 주소가 올바르지 않습니다 — QR을 다시 찍어주세요');
+    $('#btnGo').disabled = true; $('#btnFlip').disabled = true;
+    return;
+  }
+  if (!window.isSecureContext) {
+    note('HTTPS가 아니라 카메라를 열 수 없습니다');
+  }
+
+  async function openCamera() {
+    if (stream) stream.getTracks().forEach((t) => t.stop());
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: facing }, width: { ideal: 1920 }, height: { ideal: 1080 }, frameRate: { ideal: 30 } },
+        audio: { echoCancellation: true, noiseSuppression: true },
+      });
+    } catch (e) {
+      note(e.name === 'NotAllowedError'
+        ? '카메라 권한이 거부되었습니다 — 브라우저 설정에서 허용해 주세요'
+        : `카메라를 열 수 없습니다 (${e.name})`);
+      return null;
+    }
+    preview.srcObject = stream;
+    note('준비 완료 — 방송 시작을 누르세요');
+    return stream;
+  }
+
+  async function go() {
+    if (!stream && !(await openCamera())) return;
+    setCast('linking', 'Linking');
+    note('연결 중…');
+
+    peer = new Peer({ config: ICE, debug: 1 });
+    peer.on('open', () => {
+      call = peer.call(`${PREFIX}-${room}`, stream);
+      if (!call) { note('연결 실패 — PC 화면이 켜져 있는지 확인하세요'); setCast('idle', 'Standby'); return; }
+      call.on('close', () => stop('방송이 종료되었습니다'));
+      call.on('error', () => stop('연결이 끊겼습니다'));
+
+      const pc = call.peerConnection;
+      if (pc) pc.addEventListener('connectionstatechange', () => {
+        if (pc.connectionState === 'connected') { setCast('live', 'On Air'); note('PC로 송출 중입니다'); }
+        if (['failed', 'disconnected'].includes(pc.connectionState)) stop('연결이 끊겼습니다');
+      });
+      // fallback for browsers that don't fire connectionstatechange promptly
+      setTimeout(() => { if (document.body.dataset.cast === 'linking') { setCast('live', 'On Air'); note('PC로 송출 중입니다'); } }, 2500);
+    });
+    peer.on('error', (e) => {
+      stop(e.type === 'peer-unavailable'
+        ? 'PC 화면을 찾을 수 없습니다 — PC에서 세션을 먼저 여세요'
+        : `연결 오류 (${e.type})`);
+    });
+
+    $('#btnGo').disabled = true;
+    $('#btnStop').disabled = false;
+  }
+
+  function stop(msg) {
+    try { call?.close(); } catch (e) {}
+    try { peer?.destroy(); } catch (e) {}
+    call = null; peer = null;
+    setCast('idle', 'Standby');
+    note(msg || '방송을 종료했습니다');
+    $('#btnGo').disabled = false;
+    $('#btnStop').disabled = true;
+  }
+
+  $('#btnGo').addEventListener('click', go);
+  $('#btnStop').addEventListener('click', () => stop());
+  $('#btnFlip').addEventListener('click', async () => {
+    facing = facing === 'environment' ? 'user' : 'environment';
+    const fresh = await openCamera();
+    if (!fresh) return;
+    const track = fresh.getVideoTracks()[0];
+    const sender = call?.peerConnection?.getSenders().find((s) => s.track?.kind === 'video');
+    if (sender && track) sender.replaceTrack(track);
+    note(facing === 'environment' ? '후면 카메라' : '전면 카메라');
+  });
+
+  // keep the screen awake during a live broadcast
+  navigator.wakeLock?.request('screen').catch(() => {});
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') navigator.wakeLock?.request('screen').catch(() => {});
+  });
+
+  openCamera();
+}
+
+role === 'cast' ? bootCaster() : bootViewer();
+})();
+</script>
+</body>
+</html>
